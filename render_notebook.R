@@ -9,7 +9,8 @@ cat("R Markdown Rendering Script\n")
 cat("=====================================\n\n")
 
 # Check if required packages are installed
-required_packages <- c("rmarkdown", "tidyverse", "caret", "ggplot2", 
+# Note: ggplot2 is included in tidyverse but listed separately for clarity
+required_packages <- c("rmarkdown", "tidyverse", "caret", 
                        "corrplot", "gridExtra", "scales", "knitr", 
                        "pROC", "randomForest")
 
