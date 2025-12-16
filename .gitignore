@@ -1,0 +1,26 @@
+# R generated files
+.Rhistory
+.RData
+.Rproj.user
+*.Rproj
+
+# R Markdown outputs (except the final HTML which should be submitted)
+*_cache/
+*_files/
+
+# Temporary files
+*.tmp
+*~
+.DS_Store
+
+# IDE files
+.vscode/
+.idea/
+
+# Python cache (if used for data processing)
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs
+*.log
