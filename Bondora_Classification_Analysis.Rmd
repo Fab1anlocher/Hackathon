@@ -14,6 +14,23 @@ output:
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.width = 10, fig.height = 6)
 ```
 
+---
+
+**ANLEITUNG ZUM RENDERN (HOW TO RENDER):**
+
+Um dieses R Markdown Dokument zu rendern (knit), befolgen Sie diese Schritte:
+
+1. **In RStudio:** Klicken Sie einfach auf den "Knit" Button oben im Editor
+2. **In R Console:** Führen Sie aus: `rmarkdown::render("Bondora_Classification_Analysis.Rmd")`
+3. **Via Script:** Führen Sie aus: `Rscript render_notebook.R`
+
+**Hinweise:**
+- Das erste Mal werden fehlende Pakete (insbesondere `themis`) automatisch installiert
+- Der Random Forest Trainingsvorgang dauert ca. 2-5 Minuten - das ist normal
+- Stellen Sie sicher, dass `Bondora.csv` und `Description.csv` im selben Verzeichnis sind
+
+---
+
 # Executive Summary
 
 This notebook presents a comprehensive analysis of the Bondora loan dataset to predict loan defaults. The target variable `default` indicates whether a loan has defaulted (1) or not (0). We follow a structured approach including data analysis, transformation, modelling, implementation, evaluation, and reflection.
