@@ -1,0 +1,183 @@
+Name,Description
+default,"1 - loan defaulted, 0 - otherwise"
+return,Nominal annual return = [(Future value of all cash-inflows + loan amount)/ loan amount]^(1/(actual loan duration in days/365)) - 1
+NPRP,Nominal profit in % = cash inflows / loan amount - 1
+NPRA,Nominal nete cash = sum of all cash inflows - loan amount
+FVCI,Value of cash inflows - loan amount
+new,1 - it is a new costumer
+Age,The age of the loan applicant
+Gender,"1 - Woman, 0 - Male or couple of undefined"
+Interest,Maximum iterest accepted in the loan application
+MonthlyPayment,Estimated amount the borrower has to pay every month
+DebtToIncome,Ratio of borrower's monthly gross income that goes toward paying loans
+NoOfPreviousLoansBeforeLoan,Number of previous loans
+AmountOfPreviousLoansBeforeLoan,Value of previous loans
+time,Time index in days = Current date of the loan application - Earliest date of a loan application in the dataset
+time2,Square of the time index
+time3,Cube of the time index
+Hour.0,Application hour 0
+Hour.1,Application hour 1
+Hour.2,Application hour 2
+Hour.3,Application hour 3
+Hour.4,Application hour 4
+Hour.5,Application hour 5
+Hour.6,Application hour 6
+Hour.7,Application hour 7
+Hour.8,Application hour 8
+Hour.9,Application hour 9
+Hour.10,Application hour 10
+Hour.11,Application hour 11
+Hour.12,Application hour 12
+Hour.13,Application hour 13
+Hour.14,Application hour 14
+Hour.15,Application hour 15
+Hour.16,Application hour 16
+Hour.17,Application hour 17
+Hour.18,Application hour 18
+Hour.19,Application hour 19
+Hour.20,Application hour 20
+Hour.21,Application hour 21
+Hour.22,Application hour 22
+weekday.1,Friday
+weekday.2,Monday
+weekday.3,Saturday
+weekday.4,Sunday
+weekday.5,Thursday
+weekday.6,Tuesday
+ver.2,"Method used to verify loan application data - income unverified, cross-referenced by phone"
+ver.3,Method used to verify loan application data - income verified
+ver.4,Method used to verify loan application data - income and expenses verified
+lang.1,Language - Estonian
+lang.2,Language - English
+lang.3,Language - Russian
+lang.4,Language - Finnish
+lang.6,Language - Spanish
+log.amount,Natural log of the loan amount
+duration.06,Duration of the loan - 6 months
+duration.09,Duration of the loan - 9 months
+duration.12,Duration of the loan - 12 months
+duration.18,Duration of the loan - 18 months
+duration.24,Duration of the loan - 24 months
+duration.36,Duration of the loan - 36 months
+duration.48,Duration of the loan - 48 months
+duration.60,Duration of the loan - 60 months
+use.0,Loan use - consolidation
+use.1,Loan use - real estate
+use.2,Loan use - home improvement
+use.3,Loan use - business
+use.4,Loan use - education
+use.5,Loan use - travel
+use.6,Loan use - vehicle
+use.7,Loan use - other
+use.8,Loan use - health
+use.m,Loan use - not specified
+educ.2,Loan applicant's education - basic education
+educ.3,Loan applicant's education - vocational education
+educ.4,Loan applicant's education - secondary education
+educ.5,Loan applicant's education - higher education
+educ.6,Loan applicant's education - not specified
+marital.1,Loan applicant's marital status - married
+marital.2,Loan applicant's marital status - cohabitant
+marital.3,Loan applicant's marital status - single
+marital.4,Loan applicant's marital status - divorced
+marital.5,Loan applicant's marital status - widow
+depen.0,Loan applicant's number of children or other dependants - 0
+depen.1,Loan applicant's number of children or other dependants - 1
+depen.2,Loan applicant's number of children or other dependants - 2
+depen.3,Loan applicant's number of children or other dependants - 3
+depen.4,Loan applicant's number of children or other dependants - 4
+employ.2,Loan applicant's employment status - partially employed
+employ.3,Loan applicant's employment status - fully employed
+employ.4,Loan applicant's employment status - self-employed
+employ.5,Loan applicant's employment status - entrepreneur
+employ.6,Loan applicant's employment status - retiree
+em.dur.5p,Loan applicant's employment duration - more than 5 years
+em.dur.other,Loan applicant's employment duration - other
+em.dur.ret,Loan applicant's employment duration - retiree
+em.dur.trial,Loan applicant's employment duration - trial period
+em.dur.1y,Loan applicant's employment duration - less than 1 years
+em.dur.2y,Loan applicant's employment duration - less than 2 years
+em.dur.3y,Loan applicant's employment duration - less than 3 years
+em.dur.4y,Loan applicant's employment duration - less than 4 years
+em.dur.5y,Loan applicant's employment duration - less than 5 years
+exper.02y,Loan applicant's experience - less than 2 years
+exper.05y,Loan applicant's experience - less than 5 years
+exper.10y,Loan applicant's experience - less than 10 years
+exper.15y,Loan applicant's experience - less than 15 years
+exper.25y,Loan applicant's experience - less than 25 years
+exper.25p,Loan applicant's experience - more than 25 years
+Other,Loan applicant's occupation area
+Mining,Loan applicant's occupation area
+Processing,Loan applicant's occupation area
+Energy,Loan applicant's occupation area
+Utilities,Loan applicant's occupation area
+Construction,Loan applicant's occupation area
+Retail.wholesale,Loan applicant's occupation area
+Transport.warehousing,Loan applicant's occupation area
+Hospitality.catering,Loan applicant's occupation area
+Info.telecom,Loan applicant's occupation area
+Finance.insurance,Loan applicant's occupation area
+Real.estate,Loan applicant's occupation area
+Research,Loan applicant's occupation area
+Administrative,Loan applicant's occupation area
+Civil.service.military,Loan applicant's occupation area
+Education,Loan applicant's occupation area
+Healthcare.social.help,Loan applicant's occupation area
+Art.entertainment,Loan applicant's occupation area
+Agriculture.for.fish,Loan applicant's occupation area
+homeless,Loan applicant's home ownership type - homeless
+owner,Loan applicant's home ownership type - owner
+livingw.parents,Loan applicant's home ownership type - living with parents
+tenant.pfp,"Loan applicant's home ownership type - tenant, pre-furnished property"
+council.house,Loan applicant's home ownership type - council house
+joint.tenant,Loan applicant's home ownership type - tenant
+joint.ownership,Loan applicant's home ownership type - joint ownership
+mortgage,Loan applicant's home ownership type - mortgage
+encumbrance,Loan applicant's home ownership type - owner with encumbrance
+inc.princ.empl.no,1 - has income from a principal employer
+inc.princ.empl.l,The amount of income from the principla employer [log(x+1)]
+inc.pension.no,1 -has income from a pension
+inc.pension.l,The amount of income from a pension [log(x+1)]
+inc.fam.all.no,1 - has income from family allowances
+inc.fam.all.l,The amount of income from family allowances [log(x+1)]
+inc.soc.wel.no,1 - has income from social welfare
+inc.soc.wel.l,The amount of income from social welfare [log(x+1)]
+inc.leave.no,1 - has income from leave
+inc.leave.l,The amount of income from leave pay [log(x+1)]
+inc.child.no,1 - has income from child support
+inc.child.l,The amount of income from child support [log(x+1)]
+inc.other.no,1 - has income from other sources
+inc.other.l,The amount of income from other sources [log(x+1)]
+inc.total,Total income [log(x+1)]
+no.liab.00,Loan applicant's number of existing liabilities - 0
+no.liab.01,Loan applicant's number of existing liabilities - 1
+no.liab.02,Loan applicant's number of existing liabilities - 2
+no.liab.03,Loan applicant's number of existing liabilities - 3
+no.liab.04,Loan applicant's number of existing liabilities - 4
+no.liab.05,Loan applicant's number of existing liabilities - 5
+no.liab.10,Loan applicant's number of existing liabilities - up to 10
+liab.l,Total amount of existing liabilities [log(x+1)]
+no.refin.00,Loan applicant's number of liabilities after refinancing - 0
+no.refin.01,Loan applicant's number of liabilities after refinancing - 1
+no.refin.02,Loan applicant's number of liabilities after refinancing - 2
+no.refin.03,Loan applicant's number of liabilities after refinancing - 3
+no.refin.04,Loan applicant's number of liabilities after refinancing - 4
+inc.support,Loan applicant's income from alimony payments [log(x+1)]
+FreeCash.d,1 - has free cash
+FreeCash.l,Total amount of free cash [log(x+1)]
+no.previous.loan.00,Loan applicant's number of previous loans - 0
+no.previous.loan.01,Loan applicant's number of previous loans - 1
+no.previous.loan.02,Loan applicant's number of previous loans - 2
+no.previous.loan.03,Loan applicant's number of previous loans - 3
+no.previous.loan.04,Loan applicant's number of previous loans - 4
+no.previous.loan.05,Loan applicant's number of previous loans - 5
+no.previous.loan.06,Loan applicant's number of previous loans - 6
+no.previous.loan.07,Loan applicant's number of previous loans - 7
+previous.loan.l,Total amount of loan applicant's previous loan amounts [log(x+1)]
+no.previous.repay.00,Loan applicant's number of previous early repayments - 0
+no.previous.repay.01,Loan applicant's number of previous early repayments - more than 1
+previous.repay.l,Total amount of loan applicant's previous loan repayments [log(x+1)]
+A,Bondora rating - A
+AA,Bondora rating - AA
+B,Bondora rating - B
+C,Bondora rating - C
