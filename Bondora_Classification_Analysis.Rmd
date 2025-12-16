@@ -512,17 +512,29 @@ cat("\nTransformed dataset dimensions:", dim(bondora_transformed)[1], "rows and"
 ```
 
 **Transformation Summary:**
-- Imputed `r missing_before - missing_after` missing values using median imputation
-- Removed `r length(high_cor)` highly correlated features to reduce multicollinearity
-- Created derived features: debt_burden and age_group
-- Converted target variable to factor for classification
 
-**Justification for Bondora Dataset:**
-These transformations are specifically tailored to loan default prediction:
-- Missing financial data can't simply be ignored as it may represent hidden risk
-- Correlated features (like different return metrics) provide redundant information
-- The debt burden feature combines two critical risk factors
-- Age grouping captures non-linear age effects common in credit scoring
+We applied the following transformations to prepare the Bondora dataset for modeling:
+
+1. **Missing Value Imputation:** `r missing_before - missing_after` missing values imputed using median
+2. **Multicollinearity Reduction:** `r length(high_cor)` highly correlated features removed (correlation > 0.9)
+3. **Feature Engineering:** Created 2 new features:
+   - `debt_burden`: Combines debt-to-income ratio and interest rate to capture compounded financial stress
+   - `age_group`: Categorical age buckets to capture non-linear life stage effects
+4. **Target Encoding:** Converted default to factor ("NonDefault", "Default") for classification
+5. **Data Preparation:** For modeling with SMOTE, factor variables will be converted to numeric as needed
+
+**Impact on Dataset:**
+- Original dimensions: `r nrow(bondora)` rows × `r ncol(bondora)` columns
+- Transformed dimensions: `r nrow(bondora_transformed)` rows × `r ncol(bondora_transformed)` columns
+- Ready for both interpretable (Logistic Regression) and complex (Random Forest) models
+
+**Key Rationale for Bondora:**
+These transformations address the specific challenges identified during EDA:
+- **Class imbalance** (~`r round(target_prop[2], 1)`% defaults) will be handled during model training
+- **Non-linear patterns** (age, debt-to-income) are preserved through feature engineering
+- **Multicollinearity** removal improves model stability and interpretability
+- **Missing data** is addressed without losing valuable observations
+- **Feature interactions** (debt × interest) capture compound risk effects relevant to lending
 
 ---
 
