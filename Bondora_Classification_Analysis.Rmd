@@ -28,6 +28,7 @@ This notebook presents a comprehensive analysis of the Bondora loan dataset to p
 # Load required libraries
 library(tidyverse)
 library(caret)
+library(randomForest)
 library(ggplot2)
 library(corrplot)
 library(gridExtra)
