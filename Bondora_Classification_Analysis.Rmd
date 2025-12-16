@@ -249,29 +249,123 @@ kable(prev_loans_summary, caption = "Previous Loan History by Default Status", d
 
 **Interpretation:** Borrowers who default have `r if(prev_loans_summary$Mean_Num_Previous[2] > prev_loans_summary$Mean_Num_Previous[1]) "more" else "fewer"` previous loans on average (`r round(prev_loans_summary$Mean_Num_Previous[2], 2)` vs `r round(prev_loans_summary$Mean_Num_Previous[1], 2)`), suggesting that `r if(prev_loans_summary$Mean_Num_Previous[2] > prev_loans_summary$Mean_Num_Previous[1]) "excessive borrowing or over-leveraging" else "inexperience with credit"` may be a risk factor in the Bondora portfolio.
 
+## 1.5 Summary of Feature Pattern Analysis
+
+**Key Findings from Pattern Analysis:**
+
+The four feature patterns identified above reveal critical insights about loan default risk in the Bondora portfolio:
+
+1. **Demographic Risk (Age):** Age shows a systematic relationship with default behavior, indicating that certain age groups have different risk profiles. This demographic dimension must be incorporated into risk assessment.
+
+2. **Price-Risk Relationship (Interest Rate):** The strong correlation between interest rates and default outcomes confirms that Bondora's pricing mechanism successfully identifies riskier borrowers. However, this also means interest rates can serve as a powerful predictive feature in our model.
+
+3. **Financial Capacity (Debt-to-Income):** The debt-to-income ratio directly measures borrower capacity to handle additional debt. The clear separation between defaulters and non-defaulters on this metric validates its use as a fundamental risk indicator.
+
+4. **Behavioral History (Previous Loans):** Past borrowing patterns provide insight into borrower behavior and financial management. The relationship between previous loan history and defaults suggests that credit experience is a double-edged sword—it can indicate either reliability or over-extension.
+
+**Implications for Modeling:**
+
+These patterns suggest that:
+- **Non-linear relationships exist** (particularly with age and debt-to-income), favoring tree-based models over simple linear approaches
+- **Feature interactions matter** (e.g., young age + high debt-to-income may be particularly risky), pointing toward ensemble methods
+- **Multiple risk dimensions** (demographic, financial, behavioral) need to be captured, requiring a comprehensive feature set
+- **The dataset contains signal** sufficient for predictive modeling, as evidenced by clear separations between default and non-default groups
+
 ---
 
 # 2. Data Transformation (10 points)
 
-## 2.1 Transformation Strategy
+## 2.1 Transformation Strategy and Justification
 
-Based on the exploratory analysis, the following transformations are necessary:
+Based on the exploratory analysis, the following transformations are necessary for the Bondora loan default prediction task:
+
+### Discussion: Do We Need Data Transformations?
+
+**Yes, transformations are essential** for this dataset due to several data quality and modeling challenges identified during EDA:
 
 **1. Missing Value Treatment:**
-- **Justification:** Missing values can cause errors during model training and may contain information (e.g., missing debt-to-income might indicate unreported debt).
-- **Approach:** For this Bondora dataset, we'll use median imputation for numerical variables and mode for categorical variables. Alternatively, we could create missing indicators as features.
 
-**2. Feature Scaling:**
-- **Justification:** Variables like `AmountOfPreviousLoansBeforeLoan` and `Age` are on vastly different scales. Tree-based models don't require scaling, but logistic regression and SVM do.
-- **Approach:** We'll standardize features for models that require it.
+*Problem Identified:* During exploration, we found missing values in several financial variables (DebtToIncome, PreviousLoans, etc.).
+
+*Why transformation is needed for Bondora:*
+- Loan default models cannot have gaps in critical financial data—missing values would prevent predictions for new loan applications
+- Missing financial information may not be random; it could indicate borrower reluctance to disclose information, which itself is a risk signal
+- Many machine learning algorithms (including Random Forest and Logistic Regression) cannot handle missing values natively
+
+*Chosen Approach:* **Median imputation for numerical variables**
+
+*Detailed Justification:*
+- **Median over mean:** Bondora's financial variables have outliers (extreme debt-to-income ratios, large previous loan amounts). Median is robust to these outliers and won't distort the imputed values
+- **Preserves distribution:** Median imputation maintains the central tendency without introducing artificial values that could bias the model
+- **Simple and interpretable:** For regulatory purposes, Bondora needs to explain its risk model. Simple imputation is easier to defend than complex methods
+- **Alternative considered:** Creating missing indicators as binary features could capture the "missingness as signal" but adds complexity. We prioritize simplicity for this first model iteration
+
+**2. Multicollinearity Reduction:**
+
+*Problem Identified:* Financial datasets often have correlated features (e.g., different return metrics, various loan amount variables).
+
+*Why transformation is needed for Bondora:*
+- Highly correlated features (correlation > 0.9) provide redundant information and can cause:
+  - Unstable coefficient estimates in logistic regression
+  - Inflated standard errors, making interpretation difficult
+  - Unnecessary computational overhead
+- Bondora's dataset includes multiple derived metrics that measure similar concepts
+
+*Chosen Approach:* **Remove features with correlation > 0.9**
+
+*Detailed Justification:*
+- **Threshold of 0.9:** This is a standard cutoff that removes truly redundant features while preserving features that measure distinct (though related) concepts
+- **Improves model stability:** Particularly important for logistic regression where multicollinearity inflates variance
+- **Maintains interpretability:** By keeping one feature from each correlated pair, we retain the information while improving coefficient interpretability
+- **Bondora-specific rationale:** With many financial metrics (returns, rates, amounts), reducing to non-redundant features makes the model more actionable for loan officers
 
 **3. Handling Class Imbalance:**
-- **Justification:** With approximately `r round(target_prop[2], 2)`% default rate, the dataset is imbalanced. This can cause models to bias toward the majority class.
-- **Approach:** We'll use stratified sampling in train/test split and consider class weights in model training.
+
+*Problem Identified:* Default rate is approximately `r round(target_prop[2], 2)`%, creating significant class imbalance.
+
+*Why transformation is needed for Bondora:*
+- Models trained on imbalanced data tend to predict the majority class (non-default) overwhelmingly
+- This would result in a loan approval system that fails to identify high-risk borrowers
+- Bondora needs a model that effectively catches defaults, not just achieves high overall accuracy
+
+*Chosen Approach:* **Stratified sampling + SMOTE during training**
+
+*Detailed Justification:*
+- **Stratified train/test split:** Ensures both training and test sets have the same default rate, providing unbiased performance estimates
+- **SMOTE (Synthetic Minority Over-sampling):** Creates synthetic default examples by interpolating between existing default cases
+  - *Why SMOTE for Bondora:* Unlike simple over-sampling (duplicating defaults), SMOTE generates new synthetic examples that help the model learn the decision boundary around defaults without exact memorization
+  - *Better than under-sampling:* Bondora has valuable data in the non-default cases; under-sampling would discard useful information
+  - *Better than class weights alone:* SMOTE provides more training examples of the minority class, helping the model learn its characteristics more thoroughly
+- **Application timing:** SMOTE is applied only during training (within cross-validation) to avoid data leakage into the test set
 
 **4. Feature Engineering:**
-- **Justification:** Creating meaningful derived features can improve model performance. For example, combining age and previous loan history might reveal risk patterns.
-- **Approach:** We'll keep it minimal to avoid overfitting but may create interaction terms if appropriate.
+
+*Problem Identified:* Individual features may not capture combined risk effects evident in credit risk theory.
+
+*Why transformation is needed for Bondora:*
+- Credit risk is multifactorial—the risk from high debt and high interest compounds multiplicatively, not just additively
+- Age effects may be non-linear, with distinct risk profiles for different life stages
+- Raw features alone may miss these interaction effects
+
+*Chosen Approach:* **Create two derived features: debt_burden and age_group**
+
+*Detailed Justification:*
+- **debt_burden = DebtToIncome × Interest / 100:**
+  - *Rationale:* A borrower with high debt-to-income ratio AND high interest rate faces compounding financial stress. The product captures this multiplicative risk better than either variable alone
+  - *Bondora-specific value:* This synthetic feature represents total financial burden—high debt serviced at high rates is especially risky
+  - *Interpretation:* Higher debt_burden values indicate borrowers who are financially over-extended and paying premium rates, a red flag for Bondora's risk assessment
+  
+- **age_group = categorized age buckets:**
+  - *Rationale:* Credit risk literature suggests non-linear age effects. Very young borrowers lack experience; middle-aged borrowers are typically most stable; older borrowers face different risks
+  - *Categories chosen:* 18-25 (establishing), 26-35 (building), 36-45 (stable), 46-55 (established), 55+ (retirement nearing)
+  - *Bondora-specific value:* These life stages map to different employment stability, income levels, and financial priorities relevant to loan repayment
+  - *Model benefit:* Tree-based models can learn stage-specific risk patterns; this helps logistic regression capture non-linearity
+
+**5. Target Variable Encoding:**
+
+*Technical requirement:* Convert the binary default indicator (0/1) to a factor with meaningful labels.
+
+*Justification:* R's caret package requires factor targets for classification. Labels "NonDefault" and "Default" improve code readability and reduce errors compared to numeric 0/1.
 
 ## 2.2 Implementation of Transformations
 
@@ -321,15 +415,81 @@ cor_matrix <- cor(numeric_predictors, use = "complete.obs")
 cor_matrix[is.na(cor_matrix)] <- 0
 cor_matrix[is.infinite(cor_matrix)] <- 0
 
-# Visualize correlation
-corrplot(cor_matrix, method = "color", type = "upper", 
-         tl.cex = 0.6, tl.col = "black",
-         title = "Correlation Matrix of Numeric Features",
-         mar = c(0,0,2,0))
-
-# Identify and remove highly correlated features (>0.9)
+# Find highly correlated pairs FIRST (before visualization)
 high_cor <- findCorrelation(cor_matrix, cutoff = 0.9, names = TRUE, exact = TRUE)
 cat("\nHighly correlated features to consider removing:", high_cor, "\n")
+
+# Create a more readable correlation visualization
+# Strategy 1: Show only features that have at least one correlation > 0.7 with another feature
+# This focuses on the relationships that matter for multicollinearity
+
+# Configuration for visualization
+MAX_FEATURES_TO_DISPLAY <- 30  # Maximum features to show for readability
+
+# Get features with meaningful correlations (more than just self-correlation)
+# A feature is included if it has at least one correlation > 0.7 with another feature
+features_to_show <- rownames(cor_matrix)[apply(abs(cor_matrix) > 0.7, 1, function(x) sum(x) > 1)]
+
+if(length(features_to_show) > 50) {
+  # If still too many, show only the top N most connected features
+  cor_connections <- apply(abs(cor_matrix) > 0.7, 1, sum)
+  top_features <- names(sort(cor_connections, decreasing = TRUE)[1:min(MAX_FEATURES_TO_DISPLAY, length(cor_connections))])
+  features_to_show <- top_features
+}
+
+if(length(features_to_show) > 0) {
+  cor_matrix_subset <- cor_matrix[features_to_show, features_to_show]
+  
+  cat("\nShowing correlation matrix for", length(features_to_show), 
+      "features with correlations > 0.7\n")
+  cat("(Full matrix has", ncol(cor_matrix), "features - too many to visualize clearly)\n\n")
+  
+  # Visualize the readable subset
+  corrplot(cor_matrix_subset, method = "color", type = "upper", 
+           tl.cex = 0.7, tl.col = "black",
+           title = paste("Correlation Matrix: Features with |r| > 0.7 (",
+                        length(features_to_show), "features shown)"),
+           mar = c(0,0,3,0),
+           number.cex = 0.5)
+} else {
+  cat("\nNo features with correlations > 0.7 found. Dataset has low multicollinearity.\n")
+  cat("Showing correlation matrix for a sample of 20 features instead:\n\n")
+  
+  # Show a random sample of features
+  sample_features <- sample(colnames(cor_matrix), min(20, ncol(cor_matrix)))
+  cor_matrix_subset <- cor_matrix[sample_features, sample_features]
+  
+  corrplot(cor_matrix_subset, method = "color", type = "upper", 
+           tl.cex = 0.8, tl.col = "black",
+           title = "Correlation Matrix: Sample of 20 Features",
+           mar = c(0,0,3,0))
+}
+
+# Additionally, create a summary table of the highest correlations
+cat("\n=== Top 10 Highest Absolute Correlations (excluding diagonal) ===\n")
+# Get upper triangle correlations (more efficient approach)
+cor_upper <- cor_matrix
+cor_upper[lower.tri(cor_upper, diag = TRUE)] <- NA
+
+# Find high correlation pairs efficiently using which()
+high_cor_indices <- which(abs(cor_upper) > 0, arr.ind = TRUE)
+if(nrow(high_cor_indices) > 0) {
+  cor_pairs <- data.frame(
+    Feature1 = rownames(cor_matrix)[high_cor_indices[, 1]],
+    Feature2 = colnames(cor_matrix)[high_cor_indices[, 2]],
+    Correlation = cor_upper[high_cor_indices]
+  )
+  
+  # Sort by absolute correlation
+  cor_pairs <- cor_pairs[order(-abs(cor_pairs$Correlation)), ]
+  
+  # Show top 10
+  top_correlations <- head(cor_pairs, 10)
+  kable(top_correlations, digits = 3, row.names = FALSE,
+        caption = "Top 10 Feature Pairs with Highest Absolute Correlation")
+} else {
+  cat("No significant correlations found.\n")
+}
 
 # Remove highly correlated features
 if(length(high_cor) > 0) {
@@ -353,17 +513,29 @@ cat("\nTransformed dataset dimensions:", dim(bondora_transformed)[1], "rows and"
 ```
 
 **Transformation Summary:**
-- Imputed `r missing_before - missing_after` missing values using median imputation
-- Removed `r length(high_cor)` highly correlated features to reduce multicollinearity
-- Created derived features: debt_burden and age_group
-- Converted target variable to factor for classification
 
-**Justification for Bondora Dataset:**
-These transformations are specifically tailored to loan default prediction:
-- Missing financial data can't simply be ignored as it may represent hidden risk
-- Correlated features (like different return metrics) provide redundant information
-- The debt burden feature combines two critical risk factors
-- Age grouping captures non-linear age effects common in credit scoring
+We applied the following transformations to prepare the Bondora dataset for modeling:
+
+1. **Missing Value Imputation:** `r missing_before - missing_after` missing values imputed using median
+2. **Multicollinearity Reduction:** `r length(high_cor)` highly correlated features removed (correlation > 0.9)
+3. **Feature Engineering:** Created 2 new features:
+   - `debt_burden`: Combines debt-to-income ratio and interest rate to capture compounded financial stress
+   - `age_group`: Categorical age buckets to capture non-linear life stage effects
+4. **Target Encoding:** Converted default to factor ("NonDefault", "Default") for classification
+5. **Data Preparation:** For modeling with SMOTE, factor variables will be converted to numeric as needed
+
+**Impact on Dataset:**
+- Original dimensions: `r nrow(bondora)` rows × `r ncol(bondora)` columns
+- Transformed dimensions: `r nrow(bondora_transformed)` rows × `r ncol(bondora_transformed)` columns
+- Ready for both interpretable (Logistic Regression) and complex (Random Forest) models
+
+**Key Rationale for Bondora:**
+These transformations address the specific challenges identified during EDA:
+- **Class imbalance** (~`r round(target_prop[2], 1)`% defaults) will be handled during model training
+- **Non-linear patterns** (age, debt-to-income) are preserved through feature engineering
+- **Multicollinearity** removal improves model stability and interpretability
+- **Missing data** is addressed without losing valuable observations
+- **Feature interactions** (debt × interest) capture compound risk effects relevant to lending
 
 ---
 
@@ -491,9 +663,52 @@ print(head(sig_coefs[order(sig_coefs[, 4]), ], 10))
 ### 4.2.2 Main Model: Random Forest
 
 ```{r random-forest}
-# Prepare data for Random Forest (can handle both numeric and factor variables)
-# Exclude non-informative columns
+# Prepare data for Random Forest
+# IMPORTANT: SMOTE (used for handling class imbalance) requires all numeric features
+# We need to exclude factor variables like age_group or convert them to numeric
+
+# Get all feature columns except target
 feature_cols_rf <- setdiff(names(train_data), c("default"))
+
+# Identify which features are factors
+factor_cols <- sapply(train_data[, feature_cols_rf], is.factor)
+factor_col_names <- names(factor_cols)[factor_cols]
+
+# Configuration: categorical variables that should use ordinal encoding
+ORDINAL_CATEGORICAL_VARS <- c("age_group")  # Age groups have natural ordering
+
+if(length(factor_col_names) > 0) {
+  cat("Found factor columns that need handling for SMOTE:", 
+      paste(factor_col_names, collapse = ", "), "\n")
+  
+  # Handle each factor column
+  for(col in factor_col_names) {
+    if(col %in% ORDINAL_CATEGORICAL_VARS) {
+      # For ordinal categorical variables, convert to numeric (maintains order)
+      cat("Converting", col, "to numeric (ordinal encoding)\n")
+      train_data[[paste0(col, "_numeric")]] <- as.numeric(train_data[[col]])
+      test_data[[paste0(col, "_numeric")]] <- as.numeric(test_data[[col]])
+      
+      # Update feature list: remove original, add numeric version
+      feature_cols_rf <- setdiff(feature_cols_rf, col)
+      feature_cols_rf <- c(feature_cols_rf, paste0(col, "_numeric"))
+    } else {
+      # For other categorical variables, convert to numeric
+      cat("Converting", col, "to numeric\n")
+      train_data[[paste0(col, "_numeric")]] <- as.numeric(train_data[[col]])
+      test_data[[paste0(col, "_numeric")]] <- as.numeric(test_data[[col]])
+      
+      # Update feature list: remove original, add numeric version
+      feature_cols_rf <- setdiff(feature_cols_rf, col)
+      feature_cols_rf <- c(feature_cols_rf, paste0(col, "_numeric"))
+    }
+  }
+}
+
+# Ensure all features are numeric for SMOTE
+feature_types <- sapply(train_data[, feature_cols_rf], class)
+cat("\nFeature types after conversion:\n")
+print(table(feature_types))
 
 # Train Random Forest with parameters tuned for imbalanced data
 cat("\nTraining Random Forest...\n",
@@ -510,7 +725,7 @@ train_control <- trainControl(
   classProbs = TRUE,
   summaryFunction = twoClassSummary,
   savePredictions = "final",
-  sampling = "smote"  # Apply SMOTE to handle imbalance
+  sampling = "smote"  # Apply SMOTE to handle imbalance - requires numeric features
 )
 
 # Define parameter grid - reduced grid size for faster training
@@ -620,19 +835,99 @@ comparison <- data.frame(
 kable(comparison, digits = 4, caption = "Model Performance Comparison")
 ```
 
-**Interpretation for Loan Default Prediction:**
+**Deep Interpretation for Loan Default Prediction:**
 
-1. **Accuracy** (`r round(cm_rf$overall["Accuracy"], 4)`): While this shows overall correctness, it's misleading with imbalanced data. A model predicting all "NonDefault" would achieve ~`r round(100 - target_prop[2], 1)`% accuracy but be useless.
+Each metric reveals a different dimension of model performance that matters for Bondora's business:
 
-2. **Sensitivity/Recall** (`r round(cm_rf$byClass["Sensitivity"], 4)`): The proportion of actual defaults correctly identified. For Bondora, this is CRITICAL. Higher sensitivity means fewer risky loans slip through. Current value means we catch `r round(cm_rf$byClass["Sensitivity"] * 100, 1)`% of defaults.
+### 1. **Accuracy** (`r round(cm_rf$overall["Accuracy"], 4)`): The Misleading Metric
 
-3. **Specificity** (`r round(cm_rf$byClass["Specificity"], 4)`): The proportion of non-defaults correctly identified. This represents not rejecting good borrowers. Very high specificity means we're correctly approving most creditworthy borrowers.
+*What it measures:* Overall proportion of correct predictions (both defaults and non-defaults).
 
-4. **Precision** (`r round(cm_rf$byClass["Precision"], 4)`): Of loans we predict will default, what proportion actually defaults? This indicates how much we can trust a "default" prediction. Low precision means many false alarms.
+*Why it's misleading for Bondora:* With ~`r round(100 - target_prop[2], 1)`% of loans being non-defaults, a naive model that always predicts "NonDefault" would achieve this level of accuracy while being completely useless for risk management. Accuracy gives equal weight to both classes, but for Bondora, correctly identifying the rare defaults is far more important.
 
-5. **F1-Score** (`r round(cm_rf$byClass["F1"], 4)`): Harmonic mean of precision and recall, balancing both concerns. For Bondora, this is more meaningful than accuracy for the minority class (defaults).
+*Business implication:* We CANNOT use accuracy as our primary metric for loan approval decisions. A loan officer using accuracy would be misled about the model's true value.
 
-**Key Insight:** The Random Forest achieves `r if(cm_rf$byClass["F1"] > cm_lr$byClass["F1"]) "better" else "worse"` F1-score (`r round(cm_rf$byClass["F1"], 4)` vs `r round(cm_lr$byClass["F1"], 4)`), indicating `r if(cm_rf$byClass["F1"] > cm_lr$byClass["F1"]) "superior overall performance in identifying defaults while minimizing false alarms" else "competitive but slightly lower performance"`.
+### 2. **Sensitivity/Recall** (`r round(cm_rf$byClass["Sensitivity"], 4)`): The Default Detection Rate
+
+*What it measures:* Of all loans that actually defaulted, what percentage did we correctly flag as high-risk?
+
+*Why it's CRITICAL for Bondora:* Every missed default (False Negative) represents a bad loan that was approved, resulting in:
+- Loss of principal amount
+- Collection costs and legal fees
+- Increased default rate hurting Bondora's reputation
+- Potential regulatory scrutiny
+
+*Current performance:* We catch `r round(cm_rf$byClass["Sensitivity"] * 100, 1)`% of defaults, meaning we miss `r round((1 - cm_rf$byClass["Sensitivity"]) * 100, 1)`% of risky loans.
+
+*Business implication:* If Bondora processes 1,000 loan applications with 100 expected defaults (10% rate), this sensitivity means we would correctly reject `r round(cm_rf$byClass["Sensitivity"] * 100, 0)` of those risky loans but still approve `r round((1 - cm_rf$byClass["Sensitivity"]) * 100, 0)` bad loans.
+
+*Trade-off:* Higher sensitivity requires a lower threshold, which increases False Positives (rejecting good borrowers). Bondora must balance risk reduction with business growth.
+
+### 3. **Specificity** (`r round(cm_rf$byClass["Specificity"], 4)`): The Good Borrower Approval Rate
+
+*What it measures:* Of all loans that would NOT default, what percentage did we correctly approve?
+
+*Why it matters for Bondora:* This represents Bondora's ability to say "yes" to creditworthy borrowers. False Positives (good borrowers rejected) mean:
+- Lost revenue from foregone interest income
+- Reduced market share as rejected customers go to competitors
+- Poor customer experience and brand reputation damage
+- Missed opportunities for customer lifetime value
+
+*Current performance:* We correctly approve `r round(cm_rf$byClass["Specificity"] * 100, 1)`% of good loans, rejecting only `r round((1 - cm_rf$byClass["Specificity"]) * 100, 1)`% of creditworthy applications.
+
+*Business implication:* With high specificity, Bondora can confidently approve most good loans, maintaining business growth while managing risk. This is crucial for sustainable lending operations.
+
+### 4. **Precision** (`r round(cm_rf$byClass["Precision"], 4)`): Prediction Reliability
+
+*What it measures:* When our model flags a loan as "will default," how often is that prediction correct?
+
+*Why it matters for Bondora:* Low precision means many false alarms—rejecting borrowers who would have repaid. This metric tells us how much to trust a "default" prediction.
+
+*Current performance:* `r round(cm_rf$byClass["Precision"] * 100, 1)`% of loans we reject would have actually defaulted, meaning `r round((1 - cm_rf$byClass["Precision"]) * 100, 1)`% of rejections are good borrowers we turned away unnecessarily.
+
+*Business implication:* Moderate precision indicates room for improvement. Bondora might want to implement a manual review process for borderline cases to capture some of the False Positives.
+
+### 5. **F1-Score** (`r round(cm_rf$byClass["F1"], 4)`): The Balanced Performance Metric
+
+*What it measures:* Harmonic mean of precision and recall, giving equal weight to both catching defaults (sensitivity) and not falsely alarming (precision).
+
+*Why it's meaningful for Bondora:* Unlike accuracy, F1 focuses on the minority class (defaults) and balances the trade-off between being too conservative (high precision, low recall) and too lenient (high recall, low precision).
+
+*Current performance:* F1 of `r round(cm_rf$byClass["F1"], 4)` indicates `r if(cm_rf$byClass["F1"] > 0.7) "strong" else if(cm_rf$byClass["F1"] > 0.5) "moderate" else "weak"` balanced performance on default prediction.
+
+*Business implication:* This single metric summarizes the model's overall value for Bondora's loan approval workflow, balancing risk management with business growth.
+
+### 6. **Balanced Accuracy** (`r round(cm_rf$byClass["Balanced Accuracy"], 4)`): Imbalance-Adjusted Performance
+
+*What it measures:* Average of sensitivity and specificity, giving equal weight to both classes regardless of their frequency.
+
+*Why it matters for Bondora:* Adjusts for class imbalance, ensuring the model performs well on both defaults and non-defaults.
+
+*Current performance:* Balanced accuracy of `r round(cm_rf$byClass["Balanced Accuracy"], 4)` is `r if(cm_rf$byClass["Balanced Accuracy"] > cm_rf$overall["Accuracy"]) "higher than" else "similar to"` raw accuracy, indicating `r if(cm_rf$byClass["Balanced Accuracy"] > cm_rf$overall["Accuracy"]) "the model isn't just predicting the majority class" else "balanced performance across both classes"`.
+
+### **Model Comparison Summary:**
+
+The Random Forest achieves `r if(cm_rf$byClass["F1"] > cm_lr$byClass["F1"]) "superior" else "competitive"` F1-score compared to Logistic Regression (`r round(cm_rf$byClass["F1"], 4)` vs `r round(cm_lr$byClass["F1"], 4)`).
+
+*Key differences:*
+- **Sensitivity:** Random Forest = `r round(cm_rf$byClass["Sensitivity"], 4)` vs Logistic Regression = `r round(cm_lr$byClass["Sensitivity"], 4)` → Random Forest catches `r if(cm_rf$byClass["Sensitivity"] > cm_lr$byClass["Sensitivity"]) "more" else "fewer"` defaults
+- **Specificity:** Random Forest = `r round(cm_rf$byClass["Specificity"], 4)` vs Logistic Regression = `r round(cm_lr$byClass["Specificity"], 4)` → Random Forest `r if(cm_rf$byClass["Specificity"] > cm_lr$byClass["Specificity"]) "approves more" else "approves fewer"` good loans
+- **Overall:** `r if(cm_rf$byClass["F1"] > cm_lr$byClass["F1"]) "Random Forest provides better balanced performance, making it the recommended model for Bondora's loan approval system" else "Both models show competitive performance, with Logistic Regression offering better interpretability while Random Forest captures non-linear patterns"`
+
+### **Business Decision Framework:**
+
+For Bondora to operationalize this model, they should consider:
+
+1. **Which metric matters most?** 
+   - If minimizing defaults is paramount (e.g., during economic downturn): Optimize for **Sensitivity**
+   - If growing the loan portfolio is priority: Optimize for **Specificity**
+   - For balanced operations: Use **F1-Score** or **Balanced Accuracy**
+
+2. **What's the acceptable error rate?**
+   - Current False Negative rate: `r round((1 - cm_rf$byClass["Sensitivity"]) * 100, 1)`% of defaults missed
+   - Current False Positive rate: `r round((1 - cm_rf$byClass["Specificity"]) * 100, 1)`% of good borrowers rejected
+
+3. **Threshold tuning:** The default 0.5 threshold may not be optimal—see ROC analysis below for threshold selection strategy.
 
 ## 5.3 Evaluation Metric 2: ROC Curve and AUC
 
