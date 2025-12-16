@@ -12,7 +12,7 @@ cat("=====================================\n\n")
 # Note: ggplot2 is included in tidyverse but listed separately for clarity
 required_packages <- c("rmarkdown", "tidyverse", "caret", 
                        "corrplot", "gridExtra", "scales", "knitr", 
-                       "pROC", "randomForest")
+                       "pROC", "randomForest", "themis")
 
 cat("Checking for required packages...\n")
 missing_packages <- required_packages[!(required_packages %in% installed.packages()[,"Package"])]
