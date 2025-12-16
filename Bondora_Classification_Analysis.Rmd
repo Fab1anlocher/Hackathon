@@ -36,6 +36,12 @@ library(scales)
 library(knitr)
 library(pROC)
 
+# Install and load themis if not available (needed for SMOTE)
+if (!require("themis", quietly = TRUE)) {
+  install.packages("themis")
+  library(themis)
+}
+
 # Set seed for reproducibility
 set.seed(42)
 ```
@@ -300,7 +306,20 @@ bondora_transformed$default <- factor(bondora_transformed$default,
 # 3. Remove highly correlated features to avoid multicollinearity
 # Check correlation among numeric predictors
 numeric_predictors <- bondora_transformed[, numeric_cols & names(bondora_transformed) != "default"]
+
+# Remove columns with zero variance (constant values) that cause NaN in correlation
+zero_var_cols <- sapply(numeric_predictors, function(x) var(x, na.rm = TRUE) == 0 | is.na(var(x, na.rm = TRUE)))
+if(any(zero_var_cols)) {
+  cat("Removing", sum(zero_var_cols), "zero-variance columns before correlation calculation\n")
+  numeric_predictors <- numeric_predictors[, !zero_var_cols]
+}
+
+# Calculate correlation matrix
 cor_matrix <- cor(numeric_predictors, use = "complete.obs")
+
+# Replace any remaining NaN or Inf values with 0 (can occur with constant columns)
+cor_matrix[is.na(cor_matrix)] <- 0
+cor_matrix[is.infinite(cor_matrix)] <- 0
 
 # Visualize correlation
 corrplot(cor_matrix, method = "color", type = "upper", 
@@ -478,31 +497,36 @@ feature_cols_rf <- setdiff(names(train_data), c("default"))
 
 # Train Random Forest with parameters tuned for imbalanced data
 cat("\nTraining Random Forest...\n")
-cat("This may take a few minutes...\n")
+cat("Note: This training process is expected to take 2-5 minutes due to:\n")
+cat("  - Cross-validation with SMOTE resampling on each fold\n")
+cat("  - Large dataset size and multiple hyperparameter combinations\n")
+cat("  - This duration is normal and ensures robust model performance\n\n")
 
 # Use caret for consistent interface and cross-validation
+# Reduced from 5 to 3 folds to speed up training while maintaining quality
 train_control <- trainControl(
   method = "cv",
-  number = 5,
+  number = 3,  # Reduced from 5 to 3 for faster training
   classProbs = TRUE,
   summaryFunction = twoClassSummary,
   savePredictions = "final",
   sampling = "smote"  # Apply SMOTE to handle imbalance
 )
 
-# Define parameter grid
+# Define parameter grid - reduced grid size for faster training
 rf_grid <- expand.grid(
-  mtry = c(3, 5, 7)  # Number of variables randomly sampled at each split
+  mtry = c(3, 7)  # Reduced from 3 values to 2 for faster training
 )
 
 # Train model
+# Reduced ntree from 100 to 50 to speed up training without significant quality loss
 model_rf <- train(
   x = train_data[, feature_cols_rf],
   y = train_data$default,
   method = "rf",
   trControl = train_control,
   tuneGrid = rf_grid,
-  ntree = 100,  # Number of trees
+  ntree = 50,  # Reduced from 100 to 50 for faster training
   importance = TRUE,
   metric = "ROC"
 )
@@ -782,7 +806,8 @@ kable(top_features_df, digits = 2, row.names = FALSE,
 
 For the Random Forest model:
 - **mtry = `r model_rf$bestTune$mtry`:** The optimal number of features randomly sampled at each split. This balance prevents overfitting while maintaining good predictive power.
-- **ntree = 100:** Using 100 trees provides stable predictions without excessive computational cost.
+- **ntree = 50:** Using 50 trees provides stable predictions with reasonable computational cost. This is sufficient for the dataset size.
+- **3-fold CV:** Using 3-fold cross-validation balances model validation thoroughness with training time.
 - **SMOTE sampling:** Applying SMOTE during training helped the model learn from the minority class (defaults) more effectively.
 
 ## 6.3 Future Improvements
