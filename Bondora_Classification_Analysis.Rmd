@@ -423,20 +423,17 @@ cat("\nHighly correlated features to consider removing:", high_cor, "\n")
 # Strategy 1: Show only features that have at least one correlation > 0.7 with another feature
 # This focuses on the relationships that matter for multicollinearity
 
-# Find which features have high correlations
-high_cor_mask <- apply(abs(cor_matrix) > 0.7, 1, any) & 
-                 apply(abs(cor_matrix) > 0.7, 2, any)
-# Remove diagonal (self-correlation)
-diag_mask <- diag(cor_matrix) == 1
-high_cor_mask <- high_cor_mask & !diag_mask
+# Configuration for visualization
+MAX_FEATURES_TO_DISPLAY <- 30  # Maximum features to show for readability
 
-# Get features with meaningful correlations
+# Get features with meaningful correlations (more than just self-correlation)
+# A feature is included if it has at least one correlation > 0.7 with another feature
 features_to_show <- rownames(cor_matrix)[apply(abs(cor_matrix) > 0.7, 1, function(x) sum(x) > 1)]
 
 if(length(features_to_show) > 50) {
-  # If still too many, show only the top 30 most connected features
+  # If still too many, show only the top N most connected features
   cor_connections <- apply(abs(cor_matrix) > 0.7, 1, sum)
-  top_features <- names(sort(cor_connections, decreasing = TRUE)[1:30])
+  top_features <- names(sort(cor_connections, decreasing = TRUE)[1:min(MAX_FEATURES_TO_DISPLAY, length(cor_connections))])
   features_to_show <- top_features
 }
 
@@ -470,24 +467,28 @@ if(length(features_to_show) > 0) {
 
 # Additionally, create a summary table of the highest correlations
 cat("\n=== Top 10 Highest Absolute Correlations (excluding diagonal) ===\n")
-# Get upper triangle correlations
+# Get upper triangle correlations (more efficient approach)
 cor_upper <- cor_matrix
 cor_upper[lower.tri(cor_upper, diag = TRUE)] <- NA
 
-# Convert to long format and find top correlations
-cor_long <- data.frame(
-  Feature1 = rep(rownames(cor_upper), ncol(cor_upper)),
-  Feature2 = rep(colnames(cor_upper), each = nrow(cor_upper)),
-  Correlation = as.vector(cor_upper)
-)
-cor_long <- cor_long[!is.na(cor_long$Correlation), ]
-cor_long <- cor_long[order(-abs(cor_long$Correlation)), ]
-cor_long$Abs_Correlation <- abs(cor_long$Correlation)
-
-if(nrow(cor_long) > 0) {
-  top_correlations <- head(cor_long[, c("Feature1", "Feature2", "Correlation")], 10)
+# Find high correlation pairs efficiently using which()
+high_cor_indices <- which(abs(cor_upper) > 0, arr.ind = TRUE)
+if(nrow(high_cor_indices) > 0) {
+  cor_pairs <- data.frame(
+    Feature1 = rownames(cor_matrix)[high_cor_indices[, 1]],
+    Feature2 = colnames(cor_matrix)[high_cor_indices[, 2]],
+    Correlation = cor_upper[high_cor_indices]
+  )
+  
+  # Sort by absolute correlation
+  cor_pairs <- cor_pairs[order(-abs(cor_pairs$Correlation)), ]
+  
+  # Show top 10
+  top_correlations <- head(cor_pairs, 10)
   kable(top_correlations, digits = 3, row.names = FALSE,
         caption = "Top 10 Feature Pairs with Highest Absolute Correlation")
+} else {
+  cat("No significant correlations found.\n")
 }
 
 # Remove highly correlated features
@@ -673,30 +674,33 @@ feature_cols_rf <- setdiff(names(train_data), c("default"))
 factor_cols <- sapply(train_data[, feature_cols_rf], is.factor)
 factor_col_names <- names(factor_cols)[factor_cols]
 
+# Configuration: categorical variables that should use ordinal encoding
+ORDINAL_CATEGORICAL_VARS <- c("age_group")  # Age groups have natural ordering
+
 if(length(factor_col_names) > 0) {
   cat("Found factor columns that need handling for SMOTE:", 
       paste(factor_col_names, collapse = ", "), "\n")
   
-  # For age_group, convert to numeric (ordinal encoding makes sense for age categories)
-  if("age_group" %in% names(train_data)) {
-    # Create numeric version of age_group for training
-    train_data$age_group_numeric <- as.numeric(train_data$age_group)
-    test_data$age_group_numeric <- as.numeric(test_data$age_group)
-    
-    # Update feature list to use numeric version
-    feature_cols_rf <- setdiff(names(train_data), c("default", "age_group"))
-  }
-  
-  # Handle any other factor columns if present
+  # Handle each factor column
   for(col in factor_col_names) {
-    if(col != "age_group" && col %in% names(train_data)) {
-      # Convert to numeric if not already handled
-      if(is.factor(train_data[[col]])) {
-        train_data[[paste0(col, "_numeric")]] <- as.numeric(train_data[[col]])
-        test_data[[paste0(col, "_numeric")]] <- as.numeric(test_data[[col]])
-        feature_cols_rf <- setdiff(feature_cols_rf, col)
-        feature_cols_rf <- c(feature_cols_rf, paste0(col, "_numeric"))
-      }
+    if(col %in% ORDINAL_CATEGORICAL_VARS) {
+      # For ordinal categorical variables, convert to numeric (maintains order)
+      cat("Converting", col, "to numeric (ordinal encoding)\n")
+      train_data[[paste0(col, "_numeric")]] <- as.numeric(train_data[[col]])
+      test_data[[paste0(col, "_numeric")]] <- as.numeric(test_data[[col]])
+      
+      # Update feature list: remove original, add numeric version
+      feature_cols_rf <- setdiff(feature_cols_rf, col)
+      feature_cols_rf <- c(feature_cols_rf, paste0(col, "_numeric"))
+    } else {
+      # For other categorical variables, convert to numeric
+      cat("Converting", col, "to numeric\n")
+      train_data[[paste0(col, "_numeric")]] <- as.numeric(train_data[[col]])
+      test_data[[paste0(col, "_numeric")]] <- as.numeric(test_data[[col]])
+      
+      # Update feature list: remove original, add numeric version
+      feature_cols_rf <- setdiff(feature_cols_rf, col)
+      feature_cols_rf <- c(feature_cols_rf, paste0(col, "_numeric"))
     }
   }
 }
