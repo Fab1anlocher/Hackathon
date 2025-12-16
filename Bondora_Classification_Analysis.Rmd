@@ -16,18 +16,33 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.width =
 
 ---
 
-**ANLEITUNG ZUM RENDERN (HOW TO RENDER):**
+## ANLEITUNG ZUM RENDERN / HOW TO RENDER
 
-Um dieses R Markdown Dokument zu rendern (knit), befolgen Sie diese Schritte:
+**Deutsch:**
+
+Um dieses R Markdown Dokument zu rendern, haben Sie drei Möglichkeiten:
 
 1. **In RStudio:** Klicken Sie einfach auf den "Knit" Button oben im Editor
-2. **In R Console:** Führen Sie aus: `rmarkdown::render("Bondora_Classification_Analysis.Rmd")`
+2. **In der R Console:** Führen Sie aus: `rmarkdown::render("Bondora_Classification_Analysis.Rmd")`
 3. **Via Script:** Führen Sie aus: `Rscript render_notebook.R`
 
 **Hinweise:**
-- Das erste Mal werden fehlende Pakete (insbesondere `themis`) automatisch installiert
-- Der Random Forest Trainingsvorgang dauert ca. 2-5 Minuten - das ist normal
+- Beim ersten Mal werden fehlende Pakete (insbesondere `themis`) automatisch installiert
+- Der Random Forest Trainingsvorgang dauert ca. 2-5 Minuten - das ist normal und gewährleistet robuste Modellleistung
 - Stellen Sie sicher, dass `Bondora.csv` und `Description.csv` im selben Verzeichnis sind
+
+**English:**
+
+To render this R Markdown document, you have three options:
+
+1. **In RStudio:** Simply click the "Knit" button at the top of the editor
+2. **In R Console:** Run: `rmarkdown::render("Bondora_Classification_Analysis.Rmd")`
+3. **Via Script:** Run: `Rscript render_notebook.R`
+
+**Notes:**
+- Missing packages (especially `themis`) will be automatically installed on first run
+- Random Forest training takes approximately 2-5 minutes - this is normal and ensures robust model performance
+- Ensure `Bondora.csv` and `Description.csv` are in the same directory
 
 ---
 
@@ -513,11 +528,11 @@ print(head(sig_coefs[order(sig_coefs[, 4]), ], 10))
 feature_cols_rf <- setdiff(names(train_data), c("default"))
 
 # Train Random Forest with parameters tuned for imbalanced data
-cat("\nTraining Random Forest...\n")
-cat("Note: This training process is expected to take 2-5 minutes due to:\n")
-cat("  - Cross-validation with SMOTE resampling on each fold\n")
-cat("  - Large dataset size and multiple hyperparameter combinations\n")
-cat("  - This duration is normal and ensures robust model performance\n\n")
+cat("\nTraining Random Forest...\n",
+    "Note: This training process is expected to take 2-5 minutes due to:\n",
+    "  - Cross-validation with SMOTE resampling on each fold\n",
+    "  - Large dataset size and multiple hyperparameter combinations\n",
+    "  - This duration is normal and ensures robust model performance\n\n", sep = "")
 
 # Use caret for consistent interface and cross-validation
 # Reduced from 5 to 3 folds to speed up training while maintaining quality
